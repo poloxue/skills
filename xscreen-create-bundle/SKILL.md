@@ -129,67 +129,103 @@ def fetch_func(context: Context, fetch_params: FetchParams) -> pd.DataFrame:
 #### Bundle 目录结构
 
 ```
-xscreener/bundles/<market>_bundle/
-├── __init__.py           # 组装 DataBundle + 导出 FactorGroups
-├── calendar.py           # 交易日历
-├── universe.py           # 股票池
-├── technical.py          # 日线行情（可选）
-├── valuation.py          # 估值数据（可选）
-├── financial.py          # 财务数据（可选）
-├── sector_mapping.py     # 行业分类（可选）
-├── adj_factor.py         # 复权因子（可选）
-└── symbol_utils.py       # 代码格式标准化（可选）
+bundle_package/
+├── __init__.py             # 组装 DataBundle + 导出 FactorGroups
+├── sources/                # DataSource 定义，按数据内容命名文件
+│   ├── __init__.py         # 快速导出所有 DataSource
+│   ├── calendar.py         # 交易日历
+│   ├── universe.py         # 股票池
+│   ├── daily_bar.py        # 日线行情（可选）
+│   ├── valuation.py        # 估值数据（可选）
+│   ├── financial.py        # 财务数据（可选）
+│   ├── sector_mapping.py   # 行业分类（可选）
+│   ├── adj_factor.py       # 复权因子（可选）
+│   └── ...                  # 其他数据源文件按内容命名
+├── factors/                # Factor/FactorGroup 定义（按类型分组）
+│   ├── __init__.py         # 快速导出所有 FactorGroups
+│   ├── technical.py        # 技术面因子（可选）
+│   ├── valuation.py        # 估值因子（可选）
+│   └── classification.py   # 行业分类因子（可选）
+├── symbol_utils.py         # 代码格式标准化（可选）
+└── constants.py            # 常量定义（可选）
 ```
 
-#### `__init__.py` 组装
+#### `__init__.py` 组装 — bundle 包的入口
 
 ```python
-from xscreener.bundles.base import DataBundle
-from .calendar import trading_calendar_source
+from xs_bundle_xxx.sources import (
+    calendar_source,
+    universe_source,
+    daily_bar_source,
+    valuation_source,
+)
+from xs_bundle_xxx.factors import (
+    technical_factors,
+    valuation_factors,
+    classification_factors,
+)
+
+DataBundle = DataBundle(description="xxx market bundle")
+DataBundle.add_source(calendar_source)
+DataBundle.add_source(universe_source)
+DataBundle.add_source(daily_bar_source)
+DataBundle.add_source(valuation_source)
+
+FactorGroups = [
+    technical_factors,
+    valuation_factors,
+    classification_factors,
+]
+```
+
+#### `sources/__init__.py` — 导出所有 DataSource
+
+```python
+from .calendar import calendar_source
 from .universe import universe_source
 from .technical import daily_bar_source
-
-MyBundle = DataBundle(name="My Market Bundle")
-MyBundle.add_source(trading_calendar_source)
-MyBundle.add_source(universe_source)
-MyBundle.add_source(daily_bar_source)
-
-MyFactorGroups = []
+from .valuation import valuation_source
 ```
 
-然后在 `xscreener/bundles/__init__.py` 中注册：
+#### `factors/__init__.py` — 导出所有 FactorGroups
 
 ```python
-from xscreener.bundles.my_bundle import MyBundle, MyFactorGroups
+from .technical import technical_factors
+from .valuation import valuation_factors
+from .classification import classification_factors
 ```
 
 ### 步骤 5：分析数据并定义因子
 
 数据来源实现完后，分析已有的数据能生成哪些有价值的因子，按类型分组。
 
-#### FactorGroup + Factor 定义规范
+#### FactorGroup + Factor 定义规范（放在 `factors/` 下）
 
 ```python
+# factors/technical.py
 from xscreener.core import Factor, FactorGroup
 
-group = FactorGroup("technical", table_name="factor_technical")
+# 在文件顶部导入需要的 DataSource 对象（从 sources 模块导入）
+from ..sources.technical import daily_bar_source
+
+technical_factors = FactorGroup("technical", table_name="factor_technical")
 ```
 
 **跨截面因子**（`lookback=1`，无 compute 时引擎自动按 `factor_id` 在数据源中找列）：
 
 ```python
-group.add(Factor(
+technical_factors.add(Factor(
     factor_id="pe",
     name="PE (TTM)",
     description="市盈率",
 ))
 
 # 需要简单变换时
-group.add(Factor(
+technical_factors.add(Factor(
     factor_id="market_cap_yi",
     name="Market Cap (Yi)",
     compute=lambda df: df["market_cap"] / 1e8,
-    depends_on=["valuation"],
+    depends_on=[valuation_source],   # 直接传 DataSource 对象
     value_type=float,
 ))
 ```
@@ -197,12 +233,12 @@ group.add(Factor(
 **时间序列因子**（`lookback > 1`，compute 收到单只股票的跨日期 DataFrame）：
 
 ```python
-group.add(Factor(
+technical_factors.add(Factor(
     factor_id="rsi_14",
     name="RSI(14)",
     lookback=15,
     compute=compute_rsi,
-    depends_on=["daily_bar"],
+    depends_on=[daily_bar_source],  # 直接传 DataSource 对象
 ))
 
 def compute_rsi(df: pd.DataFrame) -> pd.Series:
@@ -216,8 +252,9 @@ def compute_rsi(df: pd.DataFrame) -> pd.Series:
 
 **关键规则**：
 - `lookback = 窗口大小 + 1`（引擎预读日期范围用）
-- `depends_on` 指向 `DataSource.name`
+- `depends_on` 传 **`DataSource` 对象**（不是字符串），从 `..sources` 模块导入
 - compute 用 `iloc[-1]` 取最新计算结果
+- FactorGroup 实例在模块级别创建，方便 `factors/__init__.py` 统一导出
 
 ### 步骤 6：验证
 
@@ -225,12 +262,12 @@ def compute_rsi(df: pd.DataFrame) -> pd.Series:
 
 ```python
 from xscreener import Screener
-from xscreener.databases.memory_impl import MemoryDatabase
-from xscreener.bundles.my_bundle import MyBundle, MyFactorGroups
+from xscreener.databases import MemoryDatabase
+from xs_bundle_xxx import DataBundle, FactorGroups
 
 screener = Screener(name="Test", db=MemoryDatabase())
-screener.add_data_bundle(MyBundle)
-for group in MyFactorGroups:
+screener.add_data_bundle(DataBundle)
+for group in FactorGroups:
     screener.add_factor_group(group)
 result = screener.screen({...})
 ```
