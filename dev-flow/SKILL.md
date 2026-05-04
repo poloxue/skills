@@ -21,12 +21,13 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 💡 Ideas（随意记录）
     ↓ 整理筛选
 📋 Requirements（PRD + 用户故事）
-    ↓ 确认 → 创建 Project board draft items
+    ↓ 确认 → Project board item (自动转为 plan repo issue 去除 Draft 标识)
 🏗️ Tech Spec（评估方案，需要时才写）
 ```
 
-- **User Story** → 只放在 Project board 上（draft item），不创建 GitHub Issue
-- **Bug** → 才在 plan repo 创建 GitHub Issue
+- **User Story** → Project board 创建 draft item → 立即 Convert to issue（去 Draft 标识）。issue 落在 plan repo 的 Issues tab，但你只看 board 不看 Issues tab
+- **Bug** → 直接在 plan repo 创建 GitHub Issue（不走 board）
+- **核心原则**：Issues tab 是存储层，Project board 是视图层。User Story 以 board 上的卡片为准
 
 ### Repo Convention
 
@@ -56,14 +57,15 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 用法：你说"评估下这个怎么实现"或 "/dev-flow tech-spec <需求标题>"。
 
 #### 📋 issue — 需求转 Project board
-- 把定稿的需求（Requirements Discussion）中的每个用户故事转为 Project board draft item
-- 使用 `scripts/setup_sprint.py` 创建，自动设置 Status / Priority / Estimate
+- 把定稿的需求（Requirements Discussion）中的每个用户故事转为 Project board item
+- 使用 `scripts/setup_sprint.py` 创建 draft → 自动 Convert to issue（去 Draft 标识）
+- issue 落在 plan repo 的 Issues tab，但你只需看 board
 
 用法：你说"把这些需求加到看板"或 "/dev-flow issue <需求标题>"。
 
 #### 🗺️ sprint — 启动迭代
 - 创建新的 Project board（一次迭代一个）
-- 使用 `scripts/setup_sprint.py` 完成初始化
+- 使用 `scripts/setup_sprint.py <project_id> '<items>' --repo-id <repo_id>` 完成初始化
 
 用法：你说"开始新迭代"或 "/dev-flow sprint"。
 

@@ -1,20 +1,26 @@
 """
 Sprint Project Board 初始化脚本
 
-在已有 Project board 上创建 Sprint 迭代的项 (draft items)。
+在已有 Project board 上创建 Sprint 迭代项。默认创建 draft item;
+传入 --repo-id 后自动 Convert to issue (去 Draft 标识)。
 
 用法:
-  python3 scripts/setup_sprint.py <project_id> '<items_json>'
+  python3 scripts/setup_sprint.py <project_id> '<items_json>' [--repo-id <repo_id>]
 
 参数:
   project_id — GitHub Project V2 Node ID, 如 PVT_kwHOAFqP2c4BWsLh
   items_json — JSON 数组, 每项: [title, status, priority, estimate]
+  --repo-id  — (可选) plan repo 的 Node ID。传入后自动将 draft 转为 issue
 
 示例:
+  # 只创建 draft items
   python3 scripts/setup_sprint.py PVT_kwHOAFqP2c4BWsLh '[
     ["US-01: 实现登录", "Todo", "P0", 2.0],
     ["US-02: 注册功能", "Todo", "P1", 1.0]
   ]'
+
+  # 创建后自动转 issue (去 Draft 标识)
+  python3 scripts/setup_sprint.py PVT_kwHOAFqP2c4BWsLh '[...]' --repo-id R_kgDOSQnlAQ
 
 前置条件:
   - gh CLI 已登录, token 有 project 权限
@@ -107,13 +113,25 @@ def set_field(pid, item_id, field_id, value):
     gql(q)
 
 
-def main():
-    if len(sys.argv) < 3:
-        print(__doc__)
-        sys.exit(1)
+def convert_to_issue(item_id, repo_id):
+    """Draft → Issue, 去除 Draft 标识"""
+    q = ('mutation { convertProjectV2DraftIssueItemToIssue(input: '
+         '{ itemId: "' + item_id + '", repositoryId: "' + repo_id + '" }) '
+         '{ clientMutationId } }')
+    gql(q)
 
-    pid = sys.argv[1]
-    items = json.loads(sys.argv[2])
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Setup Sprint Project Board")
+    parser.add_argument("project_id", help="Project V2 Node ID")
+    parser.add_argument("items_json", help="JSON array of items")
+    parser.add_argument("--repo-id", help="Plan repo Node ID (convert drafts to issues)")
+    args = parser.parse_args()
+
+    pid = args.project_id
+    repo_id = args.repo_id
+    items = json.loads(args.items_json)
 
     # 查找 Status 默认字段 (每个 Project board 自动带一个)
     status_id = get_field_id(pid, "Status")
@@ -140,7 +158,12 @@ def main():
         set_field(pid, iid, pri_id,
                   '{singleSelectOptionId: "' + pri_opts[priority] + '"}')
         set_field(pid, iid, est_id, '{number: ' + str(estimate) + '}')
-        print(f"  {title}: {status} {priority} {estimate}h")
+
+        if repo_id:
+            convert_to_issue(iid, repo_id)
+            print(f"  {title}: {status} {priority} {estimate}h (issue)")
+        else:
+            print(f"  {title}: {status} {priority} {estimate}h (draft)")
 
 
 if __name__ == "__main__":
