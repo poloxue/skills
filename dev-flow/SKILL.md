@@ -21,14 +21,17 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 💡 Ideas（随意记录）
     ↓ 整理筛选
 📋 Requirements（PRD + 用户故事）
-    ↓ 确认后 Convert to issue
+    ↓ 确认 → 创建 Project board draft items
 🏗️ Tech Spec（评估方案，需要时才写）
 ```
+
+- **User Story** → 只放在 Project board 上（draft item），不创建 GitHub Issue
+- **Bug** → 才在 plan repo 创建 GitHub Issue
 
 ### Repo Convention
 
 - **Code repo** — 只放代码，保持干净，对外可见时可公开
-- **Plan repo**（由用户配置） — Discussions + Issues + Project，全部 private
+- **Plan repo**（由用户配置） — Discussions + Issues（仅 bug）+ Project board
 
 ### Commands
 
@@ -52,16 +55,15 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 
 用法：你说"评估下这个怎么实现"或 "/dev-flow tech-spec <需求标题>"。
 
-#### 📋 issue — 需求转 Issue
-- 把定稿的需求（Requirements Discussion）中的每个用户故事转为 Issue
-- 验收条件写在 Issue body 里
-- 自动创建/更新 Project board 并排入迭代
+#### 📋 issue — 需求转 Project board
+- 把定稿的需求（Requirements Discussion）中的每个用户故事转为 Project board draft item
+- 使用 `scripts/setup_sprint.py` 创建，自动设置 Status / Priority / Estimate
 
-用法：你说"把这些需求转成 issue"或 "/dev-flow issue <需求标题>"。
+用法：你说"把这些需求加到看板"或 "/dev-flow issue <需求标题>"。
 
 #### 🗺️ sprint — 启动迭代
 - 创建新的 Project board（一次迭代一个）
-- 自定义字段：优先级、工时估算、状态
+- 使用 `scripts/setup_sprint.py` 完成初始化
 
 用法：你说"开始新迭代"或 "/dev-flow sprint"。
 
@@ -70,7 +72,28 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 
 ### 关键规则
 
-- 一个 Issue = 一个用户故事
-- 每个 Issue 包含验收条件（集成测试用例）
-- 不需要经 tech-spec 才能转 issue，简单需求可以直接转
+- 一个 Project board item = 一个用户故事
+- Bug 才创建 GitHub Issue
+- User Story 不需要经 tech-spec 才能转 issue，简单需求可以直接转
 - Tech Spec 只在方案不明确或需要决策时写
+
+### 复用脚本
+
+技能目录下的 `scripts/setup_sprint.py` 封装了 Project board 初始化的完整流程：
+
+```bash
+python3 scripts/setup_sprint.py <project_id> '<items_json>'
+```
+
+脚本会自动创建 Priority / Estimate 字段（跳过默认的 Status），创建 draft items 并设好字段值。
+
+### 已知坑 (GitHub Projects V2 API)
+
+1. **Status 是默认字段** — 每个 Project board 自动带一个 Status 字段（Todo/In Progress/Done），不能手动创建
+2. **singleSelectOptions 需要 description** — GitHub API 要求每个选项必须有 description 字段（可传空字符串）
+3. **createProjectV2Field 返回 projectV2Field** — 不是 `field`
+4. **DraftIssue 的判断** — 它的 `content.__typename == "DraftIssue"`，不是 null
+5. **convertProjectV2DraftIssueItemToIssue** — 返回字段名是 `clientMutationId`，不是 `issue`
+6. **token 权限** — Fine-grained token 必须有 `project` scope（read/write），否则 query/mutation 会失败
+7. **Claude Code 权限** — 需要 `Bash(gh *)` 才能通过 Claude 执行 gh 命令
+8. **字符串拼接** — 用 Python subprocess 比 shell 拼接安全（避免引号转义）
