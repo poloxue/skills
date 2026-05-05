@@ -49,7 +49,18 @@ def gql(query):
         ["gh", "api", "graphql", "-f", f"query={query}"],
         capture_output=True, text=True
     )
-    return json.loads(r.stdout)
+    if r.returncode != 0:
+        print(f"错误: gh 命令执行失败\n{r.stderr}", file=sys.stderr)
+        sys.exit(1)
+    result = json.loads(r.stdout)
+    if "errors" in result:
+        for e in result["errors"]:
+            print(f"错误: {e['message']}", file=sys.stderr)
+        sys.exit(1)
+    if "data" not in result or result["data"] is None:
+        print("错误: API 返回空数据", file=sys.stderr)
+        sys.exit(1)
+    return result
 
 
 def gql_file(query):
@@ -63,9 +74,17 @@ def gql_file(query):
     )
     os.unlink(tmp)
     if r.returncode != 0:
-        print(f"API 错误: {r.stderr}", file=sys.stderr)
+        print(f"错误: gh 命令执行失败\n{r.stderr}", file=sys.stderr)
         sys.exit(1)
-    return json.loads(r.stdout)
+    result = json.loads(r.stdout)
+    if "errors" in result:
+        for e in result["errors"]:
+            print(f"错误: {e['message']}", file=sys.stderr)
+        sys.exit(1)
+    if "data" not in result or result["data"] is None:
+        print("错误: API 返回空数据", file=sys.stderr)
+        sys.exit(1)
+    return result
 
 
 def esc(s):
@@ -189,11 +208,20 @@ def cmd_create(args):
     q_repo = ('{ repository(owner: "' + owner + '", name: "' + repo + '") { id } }')
     repo_id = gql(q_repo)["data"]["repository"]["id"]
 
-    q_mut = ('mutation { createDiscussion(input: { repositoryId: "' + repo_id
-             + '", categoryId: "' + selected['id']
-             + '", title: "' + esc(title)
-             + '", body: "' + esc(body) + '" }) { discussion { id url } } }')
-    result = gql(q_mut)["data"]["createDiscussion"]["discussion"]
+    # 创建 (用 block string 避免正文特殊字符问题)
+    lines = [
+        "mutation {",
+        "  createDiscussion(input: {",
+        f'    repositoryId: "{repo_id}"',
+        f'    categoryId: "{selected["id"]}"',
+        f'    title: "{esc(title)}"',
+        '    body: """' + body.replace('"""', '\\"""') + '"""',
+        "  }) {",
+        "    discussion { id url }",
+        "  }",
+        "}",
+    ]
+    result = gql_file("\n".join(lines))["data"]["createDiscussion"]["discussion"]
 
     print(f"已创建: {result['url']}")
     if used_fallback:
