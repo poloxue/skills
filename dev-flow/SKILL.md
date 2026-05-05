@@ -54,6 +54,10 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 #### 💡 idea — 记录新想法
 - 在计划仓库的 Discussions 的 Ideas 分类下开 Discussion
 - 随意记录，不需要格式
+- 使用 `scripts/create_discussion.py` 创建：
+  ```bash
+  echo "正文" | python3 scripts/create_discussion.py owner/repo ideas "标题"
+  ```
 
 用法：你说"有个想法"或 "/dev-flow idea"，我会先确认你想的是什么，然后记下来。
 
@@ -61,6 +65,10 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - 从已有的 Ideas Discussion 提取内容，写成 PRD + 用户故事
 - 在 Requirements 分类下开新的 Discussion（按上面的类别选择规则，不存在则用 Show and tell）
 - 每个用户故事包含验收条件
+- 使用 `scripts/create_discussion.py` 创建：
+  ```bash
+  python3 scripts/create_discussion.py owner/repo requirements "标题" body_file.md
+  ```
 
 用法：你说"帮我把那个想法整理成需求"或 "/dev-flow requirement <想法标题>"。
 
@@ -68,6 +76,10 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - 分析需求的影响范围、实现方案、排期估算
 - 在 Tech Spec 分类下开 Discussion（按上面的类别选择规则，不存在则用 General）
 - 不是每个需求都需要，方案不明确或需要决策时才写
+- 使用 `scripts/create_discussion.py` 创建：
+  ```bash
+  python3 scripts/create_discussion.py owner/repo tech-spec "标题" body_file.md
+  ```
 
 用法：你说"评估下这个怎么实现"或 "/dev-flow tech-spec <需求标题>"。
 
@@ -96,13 +108,21 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 
 ### 复用脚本
 
-技能目录下的 `scripts/setup_sprint.py` 封装了 Project board 初始化的完整流程：
+技能目录下包含以下脚本：
+
+**`scripts/setup_sprint.py`** — Project board 初始化，自动创建 Priority/Estimate 字段，创建 draft items 并设值：
 
 ```bash
 python3 scripts/setup_sprint.py <project_id> '<items_json>'
 ```
 
-脚本会自动创建 Priority / Estimate 字段（跳过默认的 Status），创建 draft items 并设好字段值。
+**`scripts/create_discussion.py`** — 在 plan repo 创建 Discussion，自动处理 category fallback：
+
+```bash
+python3 scripts/create_discussion.py <owner/repo> <category_slug> "<title>" [body_file]
+```
+
+支持的 category_slug: `ideas` / `requirements` / `tech-spec`
 
 ### 已知坑 (GitHub Projects V2 API)
 
