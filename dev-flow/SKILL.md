@@ -54,9 +54,9 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 #### 💡 idea — 记录新想法
 - 在计划仓库的 Discussions 的 Ideas 分类下开 Discussion
 - 随意记录，不需要格式
-- 使用 `scripts/create_discussion.py` 创建：
+- 使用 `scripts/discussion.py` 创建：
   ```bash
-  echo "正文" | python3 scripts/create_discussion.py owner/repo ideas "标题"
+  echo "正文" | python3 scripts/discussion.py create owner/repo ideas "标题"
   ```
 
 用法：你说"有个想法"或 "/dev-flow idea"，我会先确认你想的是什么，然后记下来。
@@ -65,9 +65,9 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - 从已有的 Ideas Discussion 提取内容，写成 PRD + 用户故事
 - 在 Requirements 分类下开新的 Discussion（按上面的类别选择规则，不存在则用 Show and tell）
 - 每个用户故事包含验收条件
-- 使用 `scripts/create_discussion.py` 创建：
+- 使用 `scripts/discussion.py` 创建：
   ```bash
-  python3 scripts/create_discussion.py owner/repo requirements "标题" body_file.md
+  python3 scripts/discussion.py create owner/repo requirements "标题" body_file.md
   ```
 
 用法：你说"帮我把那个想法整理成需求"或 "/dev-flow requirement <想法标题>"。
@@ -76,23 +76,23 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - 分析需求的影响范围、实现方案、排期估算
 - 在 Tech Spec 分类下开 Discussion（按上面的类别选择规则，不存在则用 General）
 - 不是每个需求都需要，方案不明确或需要决策时才写
-- 使用 `scripts/create_discussion.py` 创建：
+- 使用 `scripts/discussion.py` 创建：
   ```bash
-  python3 scripts/create_discussion.py owner/repo tech-spec "标题" body_file.md
+  python3 scripts/discussion.py create owner/repo tech-spec "标题" body_file.md
   ```
 
 用法：你说"评估下这个怎么实现"或 "/dev-flow tech-spec <需求标题>"。
 
 #### 📋 issue — 需求转 Project board
 - 把定稿的需求（Requirements Discussion）中的每个用户故事转为 Project board item
-- 使用 `scripts/setup_sprint.py` 创建 draft → 自动 Convert to issue（去 Draft 标识）
+- 使用 `scripts/project.py` 的 setup 或 create-draft 创建 → 自动 Convert to issue（去 Draft 标识）
 - issue 落在 plan repo 的 Issues tab，但你只需看 board
 
 用法：你说"把这些需求加到看板"或 "/dev-flow issue <需求标题>"。
 
 #### 🗺️ sprint — 启动迭代
 - 创建新的 Project board（一次迭代一个）
-- 使用 `scripts/setup_sprint.py <project_id> '<items>' --repo-id <repo_id>` 完成初始化
+- 使用 `scripts/project.py setup <project_id> '<items>' --repo-id <repo_id>` 完成初始化
 
 用法：你说"开始新迭代"或 "/dev-flow sprint"。
 
@@ -110,23 +110,29 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 
 技能目录下包含以下脚本：
 
-**`scripts/setup_sprint.py`** — Project board 初始化，自动创建 Priority/Estimate 字段，创建 draft items 并设值：
+**`scripts/project.py`** — Project 管理工具，支持增改查和状态切换：
 
 ```bash
-python3 scripts/setup_sprint.py <project_id> '<items_json>'
+python3 scripts/project.py list <owner>                    # 列出项目
+python3 scripts/project.py get <project-id>                 # 查看字段+卡片
+python3 scripts/project.py create-draft <project-id> "标题"  # 创建 Draft
+python3 scripts/project.py move <project-id> <item-id> <状态> # 移动卡片
+python3 scripts/project.py convert <item-id> <repo-id>       # Draft → Issue
+python3 scripts/project.py setup <project-id> '<items>'      # Sprint 初始化
 ```
 
-**`scripts/create_discussion.py`** — 在 plan repo 创建/更新 Discussion，自动处理 category fallback：
+**`scripts/discussion.py`** — Discussion 管理工具，支持增改查和开关：
 
 ```bash
-# 创建
-python3 scripts/create_discussion.py <owner/repo> <category_slug> "<title>" [body_file]
-
-# 更新正文（和可选的标题）
-python3 scripts/create_discussion.py --update <discussion_id> [body_file] [--title "新标题"]
+python3 scripts/discussion.py list <owner/repo>             # 列出讨论
+python3 scripts/discussion.py get <discussion-id>           # 查看全文
+python3 scripts/discussion.py create <owner/repo> <分类> "标题" [body]  # 创建
+python3 scripts/discussion.py update <id> [body] [--title]  # 更新正文/标题
+python3 scripts/discussion.py close <id>                    # 关闭
+python3 scripts/discussion.py reopen <id>                   # 重新打开
 ```
 
-支持的 category_slug: `ideas` / `requirements` / `tech-spec`
+分类: `ideas` / `requirements` / `tech-spec` (自动 fallback)
 
 ### 已知坑 (GitHub Projects V2 API)
 
