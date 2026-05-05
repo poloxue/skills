@@ -13,20 +13,22 @@ Bug 修复是独立流程，见下文。
 python3 scripts/project.py move <project-id> <item-id> "In Progress"
 ```
 
-## 2. 读/写技术方案
+## 2. 写方案到 issue 评论（必做，不跳过）
 
-移卡片到 In Progress 后，**先检查 issue 是否关联了技术文档**（Discussion / issue 评论中的方案）：
+移卡片到 In Progress 后，**必须先写方案，才能进入下一步测试环节**。不管任务多简单都必须写，哪怕只有两三行说明改动范围和涉及文件。
 
-- **有关联** → 必须通读，理解后再往后做
-- **无关联且需求不简单** → **必须先写方案，再进入测试环节**
+- **有关联技术文档**（Discussion / issue 评论中的方案）→ 通读后在 issue 评论中写实施计划
+- **无关联文档** → 直接写方案到 issue 评论
 
-方案写完后要存到正确位置并关联：
+方案存放规则：
 
 | 场景 | 方案存放位置 | 关联方式 |
 |------|------------|---------|
-| 简单改动（几行代码） | 直接写在 issue 评论 | — |
-| 单个复杂 issue | 方案写在 issue 评论 | — |
-| 跨多个 issue 的改动 | Discussion（参考 `references.md` 的分类规则） | 每个关联 issue 评论中贴 Discussion 链接 |
+| 简单改动（几行代码） | issue 评论，说明改什么文件和怎么改 | — |
+| 单个复杂 issue | issue 评论，写明方案 + 改动范围 | — |
+| 跨多个 issue 的改动 | Discussion，每个关联 issue 评论贴链接 | 参考 `references.md` 分类规则 |
+
+**写完方案才能往下走。**
 
 ## 3. 写 BDD 验收测试
 
