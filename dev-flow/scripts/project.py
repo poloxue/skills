@@ -184,12 +184,28 @@ def cmd_create_draft(args):
 
 # ── move ──
 
+def get_issue_info(item_id):
+    """从 ProjectV2Item 查询关联 Issue number 和 repo full name"""
+    q = ('{ node(id: "' + item_id + '") { ... on ProjectV2Item '
+         '{ content { ... on Issue { number repository { owner { login } name } } } } } }')
+    result = gql(q)
+    content = result["data"]["node"].get("content")
+    if content and "number" in content:
+        owner = content["repository"]["owner"]["login"]
+        name = content["repository"]["name"]
+        return content["number"], f"{owner}/{name}"
+    return None, None
+
 def cmd_move(args):
-    """move <project-id> <item-id> <status-name>"""
+    """move <project-id> <item-id> <status-name> [--commit <sha>]"""
     if len(args) < 3:
-        print("用法: project.py move <project-id> <item-id> <status-name>", file=sys.stderr)
+        print("用法: project.py move <project-id> <item-id> <status-name> [--commit <sha>]", file=sys.stderr)
         sys.exit(1)
     pid, iid, target = args[0], args[1], args[2]
+    commit_sha = None
+    for i, a in enumerate(args):
+        if a == "--commit" and i + 1 < len(args):
+            commit_sha = args[i + 1]
 
     # 查找 Status 字段和目标 option
     q_f = ('{ node(id: "' + pid + '") { ... on ProjectV2 '
@@ -217,6 +233,20 @@ def cmd_move(args):
          + '", value: { singleSelectOptionId: "' + status_o + '" } }) { projectV2Item { id } } }')
     gql(q)
     print(f"已移动到: {target}")
+
+    # 有关联 commit 时，在对应的 Issue 上添加评论
+    if commit_sha:
+        num, repo = get_issue_info(iid)
+        if num:
+            commit_url = f"https://github.com/{repo}/commit/{commit_sha}"
+            short_sha = commit_sha[:7]
+            subprocess.run(
+                ["gh", "issue", "comment", str(num),
+                 "--repo", repo,
+                 "--body", f"✅ 已实现 ({target})\n{commit_url}"],
+                capture_output=True
+            )
+            print(f"  Issue #{num}: {short_sha} 已关联")
 
 
 # ── convert ──

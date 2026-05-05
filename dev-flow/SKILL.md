@@ -106,6 +106,123 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - User Story 不需要经 tech-spec 才能转 issue，简单需求可以直接转
 - Tech Spec 只在方案不明确或需要决策时写
 
+### 开发流程（BDD → TDD → 验收）
+
+每个任务的完整周期：**BDD 验收测试 → TDD 单元测试 → 实现 → 运行全部测试 → 验收关联**
+
+#### 1. 写 BDD 验收测试
+
+基于用户故事的验收条件，先写 Go 测试。每个验收条件对应一个 `t.Run`：
+
+```go
+func TestIssueFilter(t *testing.T) {
+    t.Run("默认选中 [Open]", func(t *testing.T) {
+        m := testModel()
+        v := m.View()
+        assert(t, strings.Contains(v, "[Open]"), "should show [Open]")
+    })
+    t.Run("按 ] 切换到 Closed", func(t *testing.T) {
+        m := testModel()
+        m.Update(sendKey("]"))
+        assert(t, m.filter == "closed", "should switch to closed")
+    })
+}
+```
+
+规范：
+- 每个验收条件一条 `t.Run`
+- `sendKey("j")` / `sendKey("]")` 模拟按键
+- **不依赖网络** — mock 数据直接注入模型
+
+#### 2. TDD（先写单元测试再实现）
+
+对关键的内部函数，先写单元测试：
+
+```go
+func TestRelTime(t *testing.T) {
+    t.Run("刚刚返回 now", func(t *testing.T) {
+        assert(t, relTime(time.Now()) == "now", "just now")
+    })
+    t.Run("一小时前", func(t *testing.T) {
+        assert(t, relTime(time.Now().Add(-1*time.Hour)) == "1h ago", "")
+    })
+    t.Run("边界: 未来时间", func(t *testing.T) {
+        assert(t, relTime(time.Now().Add(time.Hour)) == "now", "future time")
+    })
+}
+```
+
+原则：
+- 内部纯函数（relTime、truncate）先写单元测试再实现
+- 覆盖边界值：空输入、负数、极大值
+- 单元测试和 BDD 测试通过后，功能才算完成
+
+#### 3. 开始实现
+
+写代码让所有测试通过。TUI 的按键响应通过 `m.Update(sendKey(...))` 模拟。
+
+#### 4. 运行全部测试
+
+```bash
+go test ./... -v
+```
+
+全绿才能进入验收。
+
+#### 5. 迭代中修正测试
+
+如果实现过程中发现测试有问题，测试也要一起改：
+
+- **验收条件不变，测试实现有 bug** → 修测试
+- **验收条件变了** → 先更新 Issue 中的用户故事和验收条件，再更新测试
+- **新增分支场景** → 追加新 `t.Run`，不修改已有断言的语义
+
+不要把过时的测试留在那里，也不要不准确的测试强行通过。
+
+#### 6. 提交 + 关联卡片
+
+```bash
+git commit -m "feat: US-XX #N 功能描述" && \
+  SHA=$(git rev-parse HEAD) && \
+  python3 scripts/project.py move <project-id> <item-id> "Done" --commit "$SHA"
+```
+
+#### 测试辅助函数模板
+
+```go
+func sendKey(s string) tea.Msg {
+    return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
+}
+
+func testModel() *Model {
+    m := New()
+    m.SetContext(module.Context{Owner: "test", Repo: "repo"})
+    m.ready = true
+    m.width = 80
+    return m
+}
+
+func assert(t *testing.T, ok bool, msg string) {
+    t.Helper()
+    if !ok {
+        t.Error(msg)
+    }
+}
+```
+
+### 提交规范
+
+每次提交必须关联 Issue，确保 GitHub 自动链接 commit 和卡片：
+
+1. **Commit message 包含 `#N`** — 在 commit message 中添加对应 Issue 编号（如 `#3`），GitHub 自动将 commit 链接到该 Issue
+2. **Move 到 Done 时 `--commit`**：
+   ```bash
+   python3 scripts/project.py move <project-id> <item-id> "Done" --commit "$SHA"
+   ```
+3. **约定**：
+   - Commit 标题格式：`<type>: US-XX #N <描述>`（如 `feat: US-07 #9 issue list view`）
+   - Move 脚本自动在 Issue 上添加评论：`✅ 已实现 (Done) + commit URL`
+
 ### 脚本设计原则
 
 1. **不重复 `gh` 已有的能力。** Issue CRUD、PR、label 管理直接用 `gh` 命令，脚本只解决 `gh` 原生不支持的场景（Discussion、Project board、批量操作）。
