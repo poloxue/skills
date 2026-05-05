@@ -116,10 +116,14 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 python3 scripts/setup_sprint.py <project_id> '<items_json>'
 ```
 
-**`scripts/create_discussion.py`** — 在 plan repo 创建 Discussion，自动处理 category fallback：
+**`scripts/create_discussion.py`** — 在 plan repo 创建/更新 Discussion，自动处理 category fallback：
 
 ```bash
+# 创建
 python3 scripts/create_discussion.py <owner/repo> <category_slug> "<title>" [body_file]
+
+# 更新正文（和可选的标题）
+python3 scripts/create_discussion.py --update <discussion_id> [body_file] [--title "新标题"]
 ```
 
 支持的 category_slug: `ideas` / `requirements` / `tech-spec`
