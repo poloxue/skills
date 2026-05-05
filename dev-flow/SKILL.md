@@ -2,7 +2,7 @@
 name: dev-flow
 description: Development workflow — manage ideas, requirements, tech specs, issues, and sprint planning
 user-invocable: true
-argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
+argument-hint: "command: idea | requirement | tech-spec | story | sprint | develop | test | help"
 allowed-tools:
   - Read
   - Write
@@ -21,53 +21,45 @@ allowed-tools:
 
 确认后，建议用户把 `Plan repo: <owner>/<repo>` 保存在用户级或项目级的配置中。
 
-## Development Workflow
+## 流程总览
 
 ```
-💡 Ideas → 📋 Requirements → 🏗️ Tech Spec → 📦 Project board
-    ↓                                               ↓
-🔄 BDD 测试 → 🔬 TDD 单元测试 → 💻 开发实现 → ✅ 运行全部测试
-    ↓
-📎 提交 + 关联卡片 → 验收
+💡 Ideas → 📋 Requirements ↔ 🏗️ Tech Spec → 📦 Project board → 🛠️ 开发 → ✅ 测试验收
 ```
 
-- **Requirements ↔ Tech Spec 互相反馈修改** — 通过 Discussion 评论同步
-- **User Story** → Project board draft item → Convert to issue（去 Draft）
-- **Bug** → 在 plan repo 创建 GitHub Issue（如果是验收发现的 bug，需要加入 Sprint 看板）
-  - 关键规则参考 [workflow.md](./workflow.md) 验收流程
-- **核心原则**：Issues tab 是存储层，Project board 是视图层
+## 阶段路由
 
-### Repo Convention
+根据当前工作阶段，查看对应手册：
+
+| 阶段 | 手册 |
+|------|------|
+| 💡 想想法 / 📋 写 PRD / 🏗️ 技术方案 | [需求与技术方案手册](requirements.md) |
+| ✅ 最终需求确认 / 📦 任务拆分解 | [规划手册](planning.md) |
+| 🛠️ 开发实现 | [开发手册](development.md) |
+| ✅ 测试验收 / 🐛 Bug 修复 | [验收手册](acceptance.md) |
+
+## Repo Convention
 
 - **Code repo** — 只放代码，保持干净
 - **Plan repo**（由用户配置） — Discussions + Issues（仅 bug）+ Project board
 
-### Commands
+## 命令
 
-- `/dev-flow idea <描述>` — 记录新想法到 Discussions
-- `/dev-flow requirement <想法标题>` — 想法转需求（PRD + 用户故事）
-- `/dev-flow tech-spec <需求标题>` — 技术评估（需要决策时才写）
-- `/dev-flow issue <需求标题>` — 需求转 Project board 卡片
-- `/dev-flow sprint` — 启动新迭代
-- `/dev-flow help` — 查看流程说明
+| 命令 | 用途 | 参考 |
+|------|------|------|
+| `idea <描述>` | 记录新想法到 Discussions | [需求手册](requirements.md) |
+| `requirement <想法标题>` | 想法转需求（PRD + 用户故事） | [需求手册](requirements.md) |
+| `tech-spec <需求标题>` | 技术评估方案 | [需求手册](requirements.md) |
+| `story <需求标题>` | 把需求拆为用户故事卡片（加到当前 Sprint） | [规划手册](planning.md) |
+| `sprint` | 创建新迭代看板 | [规划手册](planning.md) |
+| `develop` | 进入开发阶段 | [开发手册](development.md) |
+| `test` | 进入测试验收阶段 | [验收手册](acceptance.md) |
+| `help` | 查看流程说明 | — |
 
-### 关键规则
+## 关键规则
 
 - 一个 Project board item = 一个用户故事
-- Bug 才创建 GitHub Issue
+- Bug 才创建 GitHub Issue（走 board，与同一个 sprint 关联）
 - User Story 不需要经 tech-spec 才能转 issue，简单需求可以直接转
 - Tech Spec 只在方案不明确或需要决策时写
-
-### 预授权工具
-
-frontmatter 的 `allowed-tools` 限制了操作范围（gh/git/python3 脚本），系统自动放行。
-
----
-
-## 开发实现流程
-
-按卡片开发时，先读 **[workflow.md](workflow.md)**。功能开发和 bug 修复是两套独立流程。
-
-## 参考信息
-
-脚本用法和已知坑见 **[references.md](references.md)**。
+- 核心原则：Issues tab 是存储层，Project board 是视图层
