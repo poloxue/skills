@@ -106,6 +106,13 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - User Story 不需要经 tech-spec 才能转 issue，简单需求可以直接转
 - Tech Spec 只在方案不明确或需要决策时写
 
+### 脚本设计原则
+
+1. **不重复 `gh` 已有的能力。** Issue CRUD、PR、label 管理直接用 `gh` 命令，脚本只解决 `gh` 原生不支持的场景（Discussion、Project board、批量操作）。
+2. **GraphQL wrapper 必须有错误检查。** 每次 `gql()` 调用后先校验 `errors` 和 `data`，不做检查视为 bug。
+3. **能用 `gh` 一行搞定的不写 Python。** 调用 `gh issue edit`、`gh api` 比手写 GraphQL mutation 更稳定。
+4. **输出一致性。** 成功只输出结果。所有错误走 stderr。退出码 0 表示成功。
+
 ### 复用脚本
 
 技能目录下包含以下脚本：
