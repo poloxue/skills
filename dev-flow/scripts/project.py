@@ -40,7 +40,7 @@ Project 管理工具 (增/改/查/状态切换)
   ]' --repo-id R_kgDOSQnlAQ
 """
 
-import subprocess, json, sys
+import subprocess, json, sys, os, time
 
 
 def gql(query):
@@ -300,6 +300,73 @@ def set_field(pid, item_id, field_id, value):
     gql(q)
 
 
+def resolve_body(body_str):
+    """处理正文: @file:path 从文件读（读后删除文件），空字符串保持空，其他按原样"""
+    if not body_str:
+        return ""
+    if body_str.startswith("@file:"):
+        path = body_str[6:]
+        try:
+            with open(path) as f:
+                content = f.read().strip()
+            os.unlink(path)
+            return content
+        except FileNotFoundError:
+            print(f"  警告: 文件不存在 {path}，正文为空", file=sys.stderr)
+            return ""
+    return body_str
+
+
+def ensure_labels(repo_owner, repo_name):
+    """确保 phase-1 和 P0/P1/P2 label 存在"""
+    labels_to_create = {
+        "phase-1": "B0B0B0",
+        "P0": "B60205",
+        "P1": "D93F0B",
+        "P2": "FBCA04",
+    }
+    existing = set()
+    r = subprocess.run(
+        ["gh", "api", f"repos/{repo_owner}/{repo_name}/labels",
+         "--jq", ".[].name"],
+        capture_output=True, text=True
+    )
+    if r.returncode == 0:
+        existing = set(r.stdout.strip().split("\n"))
+
+    for name, color in labels_to_create.items():
+        if name in existing:
+            continue
+        subprocess.run(
+            ["gh", "api", "-X", "POST",
+             f"repos/{repo_owner}/{repo_name}/labels",
+             "-f", f"name={name}", "-f", f"color={color}"],
+            capture_output=True
+        )
+
+
+def add_labels_to_issue(repo_owner, repo_name, issue_number, labels):
+    """给 Issue 加 labels"""
+    labels_str = ",".join(labels)
+    subprocess.run(
+        ["gh", "issue", "edit", str(issue_number),
+         "--repo", f"{repo_owner}/{repo_name}",
+         "--add-label", labels_str],
+        capture_output=True
+    )
+
+
+def get_issue_number_for_item(item_id):
+    """通过 ProjectV2Item 查询对应的 Issue number"""
+    q = ('{ node(id: "' + item_id + '") { ... on ProjectV2Item '
+         '{ content { ... on Issue { number } } } } }')
+    result = gql(q)
+    content = result["data"]["node"].get("content")
+    if content and "number" in content:
+        return content["number"]
+    return None
+
+
 def cmd_setup(args):
     """setup <project-id> '<items_json>' [--repo-id <repo-id>]"""
     if len(args) < 2:
@@ -326,11 +393,21 @@ def cmd_setup(args):
     status_opts = get_options(status_id)
     pri_opts = get_options(pri_id)
 
+    # 解析 repo owner/name 用于 label 管理
+    repo_owner = repo_name = None
+    if repo_id:
+        q = ('{ node(id: "' + repo_id + '") { ... on Repository { owner { login } name } } }')
+        r = gql(q)
+        repo_owner = r["data"]["node"]["owner"]["login"]
+        repo_name = r["data"]["node"]["name"]
+        ensure_labels(repo_owner, repo_name)
+
     print("=== Items ===")
     for item in items:
         # 兼容 4 元素 (旧格式) 和 5 元素 (标题/状态/优先级/估算/正文)
         if len(item) >= 5:
-            title, status, priority, estimate, body = item[:5]
+            title, status, priority, estimate, body_str = item[:5]
+            body = resolve_body(body_str)
         else:
             title, status, priority, estimate = item
             body = ""
@@ -346,7 +423,19 @@ def cmd_setup(args):
                       '{ itemId: "' + iid + '", repositoryId: "' + repo_id + '" }) '
                       '{ clientMutationId } }')
             gql(q_conv)
-            print(f"  {title}: {status} {priority} {estimate}h (issue)")
+
+            # 查询 issue number 加 label
+            num = None
+            for _ in range(5):  # 短轮询等转换完成
+                num = get_issue_number_for_item(iid)
+                if num:
+                    break
+                time.sleep(0.3)
+            if num:
+                add_labels_to_issue(repo_owner, repo_name, num,
+                                    [priority, "phase-1"])
+
+            print(f"  {title}: {status} {priority} {estimate}h (issue #{num})")
         else:
             print(f"  {title}: {status} {priority} {estimate}h (draft)")
 
