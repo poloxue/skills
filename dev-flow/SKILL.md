@@ -33,7 +33,8 @@ allowed-tools:
 
 - **Requirements ↔ Tech Spec 互相反馈修改** — 通过 Discussion 评论同步
 - **User Story** → Project board draft item → Convert to issue（去 Draft）
-- **Bug** → 直接在 plan repo 创建 GitHub Issue（不走 board）
+- **Bug** → 在 plan repo 创建 GitHub Issue（如果是验收发现的 bug，需要加入 Sprint 看板）
+  - 关键规则参考 [workflow.md](./workflow.md) 验收流程
 - **核心原则**：Issues tab 是存储层，Project board 是视图层
 
 ### Repo Convention

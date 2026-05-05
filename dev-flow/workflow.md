@@ -120,13 +120,16 @@ SHA=$(git rev-parse HEAD) && \
 bug 修复和功能开发是两套独立流程。bug 从创建到验收通过的完整周期如下：
 
 ```text
+```text
 功能开发验收发现 bug
   ↓
 gh issue create --label bug（body 注明关联的 user story 编号）
   ↓
-移卡片到 In Progress
+将 bug issue 加入 Sprint 看板（同一个 board），移到 In Progress
   ↓
-修复（必要时写 TDD，不写方案/BDD，除非 BDD 本身有 bug）
+在 user story issue 评论区留言：`❌ 验收未通过 — 发现 bug #<N>: <描述>`
+  ↓
+修复（必要时写 TDD，不写方案/BDD，除非 BDD 本身有 bug，或需要添加新的验收规则）
   ↓
 go test → git commit -m "fix: #<bug-number> 描述"
   ↓
@@ -137,5 +140,10 @@ go test → git commit -m "fix: #<bug-number> 描述"
 
 关键规则：
 - **首次发现 bug** 才创建 bug issue
+- **验收发现的 bug 必须加入 Sprint 看板**（与 user story 同一个 board），用于跟踪验收进度
+- **双向关联**：
+  - Bug issue body 必须注明：`关联: #<user-story-number>`
+  - User story issue 评论区必须注明：`❌ 验收未通过 — 发现 bug #<N>: <描述>`
+  - 一个 user story 可以关联多个 bug，一个 bug 只属于一个 user story
 - **验收不通过**直接移回 In Progress，不重复建 issue
-- Bug fix commit 只引用 bug issue 编号，不引用 user story
+- **Bug fix commit 只引用 bug issue 编号，不引用 user story
