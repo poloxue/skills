@@ -121,6 +121,9 @@ python3 scripts/project.py convert <item-id> <repo-id>       # Draft → Issue
 python3 scripts/project.py setup <project-id> '<items>'      # Sprint 初始化
 ```
 
+`setup` 每项支持 5 个字段: `[title, status, priority, estimate, body]`
+body 可选，传入后写入 Issue 正文（含用户故事、验收条件等）。
+
 **`scripts/discussion.py`** — Discussion 管理工具，支持增改查和开关：
 
 ```bash

@@ -14,6 +14,8 @@ Project 管理工具 (增/改/查/状态切换)
   owner — GitHub 用户名或组织名
   project-id — Project V2 Node ID, 如 PVT_kwHOAFqP2c4BWsLh
   status-name — 列名, 如 "Todo" / "In Progress" / "Done"
+  items_json — JSON 数组, 每项: [title, status, priority, estimate, body?]
+               body 可选, 传入后写入 Issue/Draft 正文
 
 示例:
   # 列出项目
@@ -31,10 +33,10 @@ Project 管理工具 (增/改/查/状态切换)
   # Draft → Issue
   python3 scripts/project.py convert PVTI_xxxx R_kgDOSUjJrw
 
-  # Sprint 初始化 (替换 setup_sprint.py)
+  # Sprint 初始化 (含正文)
   python3 scripts/project.py setup PVT_kwHOAFqP2c4BWsLh '[
-    ["US-01: 登录", "Todo", "P0", 2.0],
-    ["US-02: 注册", "In Progress", "P1", 1.0]
+    ["US-01: 登录", "Todo", "P0", 2.0, "用户故事全文..."],
+    ["US-02: 注册", "In Progress", "P1", 1.0, ""]
   ]' --repo-id R_kgDOSQnlAQ
 """
 
@@ -279,9 +281,15 @@ def get_options(field_id):
     return {o["name"]: o["id"] for o in gql(q)["data"]["node"]["options"]}
 
 
-def create_draft(pid, title):
-    q = ('mutation { addProjectV2DraftIssue(input: { projectId: "' + pid
-         + '", title: "' + title.replace('"', '\\"') + '" }) { projectItem { id } } }')
+def create_draft(pid, title, body=""):
+    if body:
+        body_e = body.replace("\\", "\\\\").replace('"', '\\"')
+        q = ('mutation { addProjectV2DraftIssue(input: { projectId: "' + pid
+             + '", title: "' + title.replace('"', '\\"') + '", body: "' + body_e
+             + '" }) { projectItem { id } } }')
+    else:
+        q = ('mutation { addProjectV2DraftIssue(input: { projectId: "' + pid
+             + '", title: "' + title.replace('"', '\\"') + '" }) { projectItem { id } } }')
     return gql(q)["data"]["addProjectV2DraftIssue"]["projectItem"]["id"]
 
 
@@ -319,8 +327,14 @@ def cmd_setup(args):
     pri_opts = get_options(pri_id)
 
     print("=== Items ===")
-    for title, status, priority, estimate in items:
-        iid = create_draft(pid, title)
+    for item in items:
+        # 兼容 4 元素 (旧格式) 和 5 元素 (标题/状态/优先级/估算/正文)
+        if len(item) >= 5:
+            title, status, priority, estimate, body = item[:5]
+        else:
+            title, status, priority, estimate = item
+            body = ""
+        iid = create_draft(pid, title, body)
         set_field(pid, iid, status_id,
                   '{singleSelectOptionId: "' + status_opts[status] + '"}')
         set_field(pid, iid, pri_id,
