@@ -3,6 +3,14 @@ name: dev-flow
 description: Development workflow — manage ideas, requirements, tech specs, issues, and sprint planning
 user-invocable: true
 argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash(gh:*)
+  - Bash(git:*)
+  - Bash(python3 scripts/project.py*)
+  - Bash(python3 scripts/discussion.py*)
 ---
 
 ## 首次使用
@@ -118,6 +126,10 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - Bug 才创建 GitHub Issue
 - User Story 不需要经 tech-spec 才能转 issue，简单需求可以直接转
 - Tech Spec 只在方案不明确或需要决策时写
+
+### 预授权工具
+
+dev-flow 在 SKILL.md frontmatter 声明了 `allowed-tools`，限制此 skill 需要的工具范围（Read/Write/Edit/Bash 仅限于 gh、git、python3）。系统会自动放行范围内的操作，无需每次确认。
 
 ### 开发流程（BDD → TDD → 验收）
 
