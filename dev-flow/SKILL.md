@@ -9,8 +9,8 @@ allowed-tools:
   - Edit
   - Bash(gh:*)
   - Bash(git:*)
-  - Bash(python3 scripts/project.py*)
-  - Bash(python3 scripts/discussion.py*)
+  - Bash(python3 **/scripts/project.py*)
+  - Bash(python3 **/scripts/discussion.py*)
 ---
 
 ## 首次使用
