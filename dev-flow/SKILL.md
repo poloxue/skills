@@ -34,6 +34,21 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 - **Code repo** — 只放代码，保持干净，对外可见时可公开
 - **Plan repo**（由用户配置） — Discussions + Issues（仅 bug）+ Project board
 
+### Discussion Category 选择规则
+
+创建 Discussion 时按优先级选择 category，不存在则 fallback：
+
+| 用途 | 首选 category | Fallback |
+|------|--------------|----------|
+| 💡 Ideas | `Ideas` | —（一定存在） |
+| 📋 Requirements | `Requirements` | `Show and tell` |
+| 🏗️ Tech Spec | `Tech Spec` | `General` |
+
+实现方式：
+- 先通过 GraphQL 查询仓库的 `discussionCategories` 列表获取 slug 列表
+- 检查首选 slug 是否存在，存在则用它，否则用 fallback
+- 注意 category slug 是自动生成的：`Requirements` → `requirements`，`Tech Spec` → `tech-spec`
+
 ### Commands
 
 #### 💡 idea — 记录新想法
@@ -44,14 +59,14 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 
 #### 📋 requirement — 想法转需求
 - 从已有的 Ideas Discussion 提取内容，写成 PRD + 用户故事
-- 在 Requirements 分类下开新的 Discussion
+- 在 Requirements 分类下开新的 Discussion（按上面的类别选择规则，不存在则用 Show and tell）
 - 每个用户故事包含验收条件
 
 用法：你说"帮我把那个想法整理成需求"或 "/dev-flow requirement <想法标题>"。
 
 #### 🏗️ tech-spec — 技术评估
 - 分析需求的影响范围、实现方案、排期估算
-- 在 Tech Spec 分类下开 Discussion
+- 在 Tech Spec 分类下开 Discussion（按上面的类别选择规则，不存在则用 General）
 - 不是每个需求都需要，方案不明确或需要决策时才写
 
 用法：你说"评估下这个怎么实现"或 "/dev-flow tech-spec <需求标题>"。
