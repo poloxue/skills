@@ -142,7 +142,15 @@ dev-flow 在 SKILL.md frontmatter 声明了 `allowed-tools`，限制此 skill �
 2. 为每个用户故事创建任务卡片（自动转为 Issue）
 3. 卡片包含：用户故事标题 + 验收条件 + 参考文档链接
 
-#### 2. 写 BDD 验收测试
+#### 2. 开始任务 → 移动卡片到 In Progress
+
+开始实现一个卡片前，先将其移动到 **In Progress**：
+
+```bash
+python3 scripts/project.py move <project-id> <item-id> "In Progress"
+```
+
+#### 3. 写 BDD 验收测试
 
 基于用户故事卡片中的验收条件，先写验收测试。每个验收条件对应一条测试用例：
 
@@ -168,7 +176,7 @@ dev-flow 在 SKILL.md frontmatter 声明了 `allowed-tools`，限制此 skill �
 
 如果真实外部环境可以清理且限制不大，也可以用真实数据做验收测试。两种方式看场景选择，核心原则是测试可重复、可自动化。
 
-#### 3. TDD（先写单元测试再实现）
+#### 4. TDD（先写单元测试再实现）
 
 对关键的内部函数或模块，先写单元测试再实现：
 
@@ -190,11 +198,11 @@ dev-flow 在 SKILL.md frontmatter 声明了 `allowed-tools`，限制此 skill �
 - 覆盖边界值：空输入、负数、极大值
 - 单元测试和 BDD 测试都通过后，功能才算完成
 
-#### 4. 开始实现
+#### 5. 开始实现
 
 写代码让所有测试通过。
 
-#### 5. 运行全部测试
+#### 6. 运行全部测试
 
 ```bash
 # Go
@@ -216,7 +224,7 @@ pytest -k "test_issue_filter"
 
 不同语言替换为相应的测试命令，全绿才能验收。测试框架不限，核心是自动化、可重复。
 
-#### 6. 迭代中修正测试
+#### 7. 迭代中修正测试
 
 如果实现过程中发现测试有问题，测试也要一起改：
 
@@ -226,7 +234,7 @@ pytest -k "test_issue_filter"
 
 不要把过时的测试留在那里，也不要不准确的测试强行通过。
 
-#### 7. 提交 + 关联卡片
+#### 8. 提交 + 关联卡片
 
 ```bash
 git commit -m "feat: US-XX #N 功能描述" && \
