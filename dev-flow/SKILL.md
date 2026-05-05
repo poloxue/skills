@@ -20,11 +20,24 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 ```
 💡 Ideas（随意记录）
     ↓ 整理筛选
-📋 Requirements（PRD + 用户故事）
-    ↓ 确认 → Project board item (自动转为 plan repo issue 去除 Draft 标识)
-🏗️ Tech Spec（评估方案，需要时才写）
+📋 Requirements（PRD + 用户故事）←━━━━━━━━━━━━━━━━━━┓
+    ↓ 确认                              反馈修改 ┃
+🏗️ Tech Spec（评估方案，需要时才写）━━━━━━━━━━━━━━━━┛
+    ↓ 确认
+📦 Project board（迭代 + 任务卡片）
+    ↓
+🔄 BDD 测试 ← 从用户故事提取验收条件
+    ↓
+🔬 TDD 单元测试 ← 关键函数先写测试
+    ↓
+💻 开发实现
+    ↓
+✅ 运行全部测试（单测 → BDD 验收）
+    ↓
+📎 提交 + 关联卡片
 ```
 
+- **Requirements ↔ Tech Spec 互相反馈修改** — Tech Spec 可能发现需求遗漏或设计不合理，需要回退修改 Requirements；反之 Requirements 变更也要同步更新 Tech Spec。通过 Discussion 评论同步，不用创建额外文档。
 - **User Story** → Project board 创建 draft item → 立即 Convert to issue（去 Draft 标识）。issue 落在 plan repo 的 Issues tab，但你只看 board 不看 Issues tab
 - **Bug** → 直接在 plan repo 创建 GitHub Issue（不走 board）
 - **核心原则**：Issues tab 是存储层，Project board 是视图层。User Story 以 board 上的卡片为准
@@ -110,104 +123,103 @@ argument-hint: "command: idea | requirement | tech-spec | issue | sprint | help"
 
 每个任务的完整周期：**BDD 验收测试 → TDD 单元测试 → 实现 → 运行全部测试 → 验收关联**
 
-#### 1. 写 BDD 验收测试
+#### 1. 确认 → Project board
 
-基于用户故事的验收条件，先写 Go 测试。每个验收条件对应一个 `t.Run`：
+需求确认后：
+1. 创建或复用 Sprint Project board
+2. 为每个用户故事创建任务卡片（自动转为 Issue）
+3. 卡片包含：用户故事标题 + 验收条件 + 参考文档链接
 
-```go
-func TestIssueFilter(t *testing.T) {
-    t.Run("默认选中 [Open]", func(t *testing.T) {
-        m := testModel()
-        v := m.View()
-        assert(t, strings.Contains(v, "[Open]"), "should show [Open]")
-    })
-    t.Run("按 ] 切换到 Closed", func(t *testing.T) {
-        m := testModel()
-        m.Update(sendKey("]"))
-        assert(t, m.filter == "closed", "should switch to closed")
-    })
-}
+#### 2. 写 BDD 验收测试
+
+基于用户故事卡片中的验收条件，先写验收测试。每个验收条件对应一条测试用例：
+
+```text
+场景: 过滤器切换
+  Given 有一个包含多个 Issue 的列表
+  When 用户按下 "]"
+  Then 过滤器切换到 Closed
+  And 列表重新加载
+
+场景: 列表导航
+  Given 有 3 条 Issue
+  When 用户按下 "j"
+  Then 光标移动到第 2 条
+  When 用户按下 "k"
+  Then 光标回到第 1 条
 ```
 
 规范：
-- 每个验收条件一条 `t.Run`
-- `sendKey("j")` / `sendKey("]")` 模拟按键
-- **不依赖网络** — mock 数据直接注入模型
+- 每个验收条件一条测试用例（直接引用 Issue 中的 AC 编号）
+- 模拟用户交互（按键输入），断言系统状态变化
+- **默认 mock 外部依赖** — 数据直接注入，不调真实网络/API
 
-#### 2. TDD（先写单元测试再实现）
+如果真实外部环境可以清理且限制不大，也可以用真实数据做验收测试。两种方式看场景选择，核心原则是测试可重复、可自动化。
 
-对关键的内部函数，先写单元测试：
+#### 3. TDD（先写单元测试再实现）
 
-```go
-func TestRelTime(t *testing.T) {
-    t.Run("刚刚返回 now", func(t *testing.T) {
-        assert(t, relTime(time.Now()) == "now", "just now")
-    })
-    t.Run("一小时前", func(t *testing.T) {
-        assert(t, relTime(time.Now().Add(-1*time.Hour)) == "1h ago", "")
-    })
-    t.Run("边界: 未来时间", func(t *testing.T) {
-        assert(t, relTime(time.Now().Add(time.Hour)) == "now", "future time")
-    })
-}
+对关键的内部函数或模块，先写单元测试再实现：
+
+```text
+函数: formatRelativeTime
+  - 刚刚 → "now"
+  - 5 分钟前 → "5m ago"
+  - 2 天前 → "2d ago"
+  - 未来时间 → "now" (边界)
+
+函数: truncateText
+  - 短文本 → 原样返回
+  - 超长文本 → 截断加省略号
+  - max <= 0 → 返回空
 ```
 
 原则：
-- 内部纯函数（relTime、truncate）先写单元测试再实现
+- 内部关键逻辑先写测试再实现
 - 覆盖边界值：空输入、负数、极大值
-- 单元测试和 BDD 测试通过后，功能才算完成
+- 单元测试和 BDD 测试都通过后，功能才算完成
 
-#### 3. 开始实现
+#### 4. 开始实现
 
-写代码让所有测试通过。TUI 的按键响应通过 `m.Update(sendKey(...))` 模拟。
+写代码让所有测试通过。
 
-#### 4. 运行全部测试
+#### 5. 运行全部测试
 
 ```bash
+# Go
 go test ./... -v
+go test ./module/ -v -run TestIssueFilter
+
+# Rust
+cargo test
+cargo test test_issue_filter
+
+# JavaScript / TypeScript
+npm test
+npx jest --testNamePattern="IssueFilter"
+
+# Python
+pytest
+pytest -k "test_issue_filter"
 ```
 
-全绿才能进入验收。
+不同语言替换为相应的测试命令，全绿才能验收。测试框架不限，核心是自动化、可重复。
 
-#### 5. 迭代中修正测试
+#### 6. 迭代中修正测试
 
 如果实现过程中发现测试有问题，测试也要一起改：
 
-- **验收条件不变，测试实现有 bug** → 修测试
-- **验收条件变了** → 先更新 Issue 中的用户故事和验收条件，再更新测试
-- **新增分支场景** → 追加新 `t.Run`，不修改已有断言的语义
+- **验收条件不变，测试有 bug** → 修测试
+- **验收条件变了** → 先更新 Issue 卡片中的用户故事和 AC，再更新测试
+- **新增分支场景** → 追加新用例，不修改已有断言
 
 不要把过时的测试留在那里，也不要不准确的测试强行通过。
 
-#### 6. 提交 + 关联卡片
+#### 7. 提交 + 关联卡片
 
 ```bash
 git commit -m "feat: US-XX #N 功能描述" && \
   SHA=$(git rev-parse HEAD) && \
   python3 scripts/project.py move <project-id> <item-id> "Done" --commit "$SHA"
-```
-
-#### 测试辅助函数模板
-
-```go
-func sendKey(s string) tea.Msg {
-    return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
-}
-
-func testModel() *Model {
-    m := New()
-    m.SetContext(module.Context{Owner: "test", Repo: "repo"})
-    m.ready = true
-    m.width = 80
-    return m
-}
-
-func assert(t *testing.T, ok bool, msg string) {
-    t.Helper()
-    if !ok {
-        t.Error(msg)
-    }
-}
 ```
 
 ### 提交规范
