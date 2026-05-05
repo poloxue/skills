@@ -84,12 +84,11 @@ def cmd_get(args):
     pid = args[0]
     q = ('{ node(id: "' + pid + '") { ... on ProjectV2 { id number title url '
          'fields(first: 30) { nodes { ... on ProjectV2SingleSelectField { id name options { id name } } '
-         '... on ProjectV2Field { id name } '
-         '... on ProjectV2NumberField { id name } } } '
+         '... on ProjectV2Field { id name } } } '
          'items(first: 50) { nodes { id '
          'content { ... on DraftIssue { title body } ... on Issue { title number state url } } '
          'fieldValues(first: 20) { nodes { ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2SingleSelectField { name } } } '
-         '... on ProjectV2ItemFieldNumberValue { number field { ... on ProjectV2NumberField { name } } } } } } } } } }')
+         '... on ProjectV2ItemFieldNumberValue { number } } } } } } } }')
     result = gql(q)
     proj = result["data"]["node"]
 
