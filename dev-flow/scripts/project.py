@@ -548,8 +548,30 @@ def cmd_remove_issue(args):
     gql(f'mutation {{ deleteProjectV2Item(input: {{projectId: "{pid}", itemId: "{iid}"}}) {{ deletedItemId }} }}')
     print(f"已移除: {iid}")
 
+# ── move-issue ──
+
+def cmd_move_issue(args):
+    """move-issue <from-id> <to-id> <issue-url>"""
+    if len(args) < 3:
+        print("用法: project.py move-issue <from-id> <to-id> <issue-url>", file=sys.stderr)
+        sys.exit(1)
+    from_pid, to_pid, issue_url = args[0], args[1], args[2]
+    issue_id = get_issue_node_id(issue_url)
+
+    result = gql(f'mutation {{ addProjectV2ItemById(input: {{projectId: "{to_pid}", contentId: "{issue_id}"}}) {{ item {{ id }} }} }}')
+    new_id = result["data"]["addProjectV2ItemById"]["item"]["id"]
+
+    items = gql(f'{{ node(id: "{from_pid}") {{ ... on ProjectV2 {{ items(first: 50) {{ nodes {{ id content {{ ... on Issue {{ id }} }} }} }} }} }} }}')
+    for item in items["data"]["node"]["items"]["nodes"]:
+        if item.get("content", {}).get("id") == issue_id:
+            gql(f'mutation {{ deleteProjectV2Item(input: {{projectId: "{from_pid}", itemId: "{item["id"]}"}}) {{ deletedItemId }} }}')
+            break
+
+    print(f"已移动: {issue_url}")
+
 CMDS = {
     "add-issue": cmd_add_issue,
+    "move-issue": cmd_move_issue,
     "remove-issue": cmd_remove_issue,
     "create": cmd_create,
     "close": cmd_close,
