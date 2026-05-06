@@ -129,4 +129,16 @@ git push origin sprint-1
 
 ---
 
-三步完成后，Sprint 正式结束，进入下一个 Sprint 的规划阶段。
+三步完成后，Sprint 正式结束。
+
+### 第四步：关闭 Sprint 看板
+
+```bash
+gh project close <看板编号> --owner <owner>
+```
+
+旧看板关闭后仍可访问（只读），记录在 Sprint 总结报告的链接中。
+
+---
+
+进入下一个 Sprint 的规划阶段。

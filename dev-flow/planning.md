@@ -16,9 +16,22 @@ Requirements Discussion 确认定稿后，将每个用户故事转为 Project bo
 
 ## Sprint Board 设置
 
-### 创建新迭代
+每个 Sprint 创建独立的 Project board，Sprint 结束后关闭旧 board。
+
+### 创建新迭代看板
+
+命名规则：`{仓库名}-{日期}`，如 `ghpm-2026-05-07`。
 
 ```bash
+# 1. 创建新看板
+gh project create --owner <owner> --title "<repo>-<date>" --format json
+
+# 2. 获取 project-id
+python3 scripts/project.py list <owner>
+
+# 3. 在 AGENTS.md 中记录当前 Sprint 看板名
+
+# 4. 初始化字段 + 创建卡片
 python3 scripts/project.py setup <project-id> '<items>'
 ```
 
