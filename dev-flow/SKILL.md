@@ -24,7 +24,7 @@ allowed-tools:
 ## 流程总览
 
 ```
-💡 Ideas → 📋 Requirements ↔ 🏗️ Tech Spec → 📦 Project board → 🛠️ 开发 → ✅ 测试验收
+💡 Ideas → 📋 Requirements ↔ 🏗️ Tech Spec → 📦 Project board → 🛠️ 开发 → ✅ 测试验收 → 📦 Sprint 收尾
 ```
 
 ## 阶段路由
@@ -37,6 +37,7 @@ allowed-tools:
 | ✅ 最终需求确认 / 📦 任务拆分解 | [规划手册](planning.md) |
 | 🛠️ 开发实现 | [开发手册](development.md) |
 | ✅ 测试验收 / 🐛 Bug 修复 | [验收手册](acceptance.md) |
+| 📦 Sprint 收尾 | [收尾手册](sprint-closure.md) |
 
 ## Repo Convention
 
@@ -54,6 +55,7 @@ allowed-tools:
 | `sprint` | 创建新迭代看板 | [规划手册](planning.md) |
 | `develop` | 进入开发阶段 | [开发手册](development.md) |
 | `test` | 进入测试验收阶段 | [验收手册](acceptance.md) |
+| `close` | 进入 Sprint 收尾阶段 | [收尾手册](sprint-closure.md) |
 | `help` | 查看流程说明 | — |
 
 ## 关键规则
