@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-description: Development workflow — manage ideas, requirements, tech specs, issues, and sprint planning
+description: Development workflow — manage ideas, requirements, tech specs, issues, sprint planning, and sprint closure
 user-invocable: true
 argument-hint: "command: idea | requirement | tech-spec | story | sprint | develop | test | help"
 allowed-tools:
