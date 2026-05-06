@@ -7,7 +7,8 @@ Project 管理工具 (增/改/查/状态切换)
   python3 scripts/project.py list <owner>                 # 列出项目
   python3 scripts/project.py get <project-id>              # 查看项目字段+卡片
   python3 scripts/project.py create-draft <project-id> "<title>" [--status <name>]
-  python3 scripts/project.py move <project-id> <item-id> <status-name>
+  python3 scripts/project.py add-issue <project-id> <issue-url>   # 将已有 Issue 加入看板
+  python3 scripts/project.py remove-issue <project-id> <item-id>    # 从看板移除卡片
   python3 scripts/project.py convert <item-id> <repo-id>   # Draft → Issue
   python3 scripts/project.py setup <project-id> '<items_json>' [--repo-id <repo-id>]
 
@@ -511,7 +512,45 @@ def cmd_setup(args):
             print(f"  {title}: {status} {priority} {estimate}h (draft)")
 
 
+# ── add-issue ──
+
+def get_issue_node_id(url_or_num, repo=""):
+    """从 URL 或 number 获取 Issue node ID"""
+    if url_or_num.startswith("http"):
+        parts = url_or_num.rstrip("/").split("/")
+        num = parts[-1]
+        owner_repo = "/".join(parts[-4:-2])
+    else:
+        num = url_or_num
+        owner_repo = repo
+    q = f'{{repository(owner:"{owner_repo.split("/")[0]}",name:"{owner_repo.split("/")[1]}"){{issue(number:{num}){{id}}}}}}'
+    return gql(q)["data"]["repository"]["issue"]["id"]
+
+def cmd_add_issue(args):
+    """add-issue <project-id> <issue-url|number> [repo]"""
+    if len(args) < 2:
+        print("用法: project.py add-issue <project-id> <issue-url|number> [repo]", file=sys.stderr)
+        sys.exit(1)
+    pid = args[0]
+    issue_id = get_issue_node_id(args[1], args[2] if len(args) > 2 else "")
+    result = gql(f'mutation {{ addProjectV2ItemById(input: {{projectId: "{pid}", contentId: "{issue_id}"}}) {{ item {{ id }} }} }}')
+    item_id = result["data"]["addProjectV2ItemById"]["item"]["id"]
+    print(f"已加入看板: {item_id}")
+
+# ── remove-issue ──
+
+def cmd_remove_issue(args):
+    """remove-issue <project-id> <item-id>"""
+    if len(args) < 2:
+        print("用法: project.py remove-issue <project-id> <item-id>", file=sys.stderr)
+        sys.exit(1)
+    pid, iid = args[0], args[1]
+    gql(f'mutation {{ deleteProjectV2Item(input: {{projectId: "{pid}", itemId: "{iid}"}}) {{ deletedItemId }} }}')
+    print(f"已移除: {iid}")
+
 CMDS = {
+    "add-issue": cmd_add_issue,
+    "remove-issue": cmd_remove_issue,
     "create": cmd_create,
     "close": cmd_close,
     "list": cmd_list,
