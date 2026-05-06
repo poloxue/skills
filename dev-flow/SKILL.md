@@ -61,6 +61,8 @@ allowed-tools:
 
 ## 关键规则
 
+- 各阶段必须严格按对应手册执行，不得跳过步骤。
+
 - 一个 Project board item = 一个用户故事
 - Bug 才创建 GitHub Issue（走 board，与同一个 sprint 关联）
 - User Story 不需要经 tech-spec 才能转 issue，简单需求可以直接转
