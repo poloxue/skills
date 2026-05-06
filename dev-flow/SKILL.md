@@ -10,6 +10,7 @@ allowed-tools:
   - Bash(gh:*)
   - Bash(git:*)
   - Bash(python3 **/scripts/project.py*)
+  - Bash(python3 **/scripts/issue.py*)
   - Bash(python3 **/scripts/discussion.py*)
 ---
 

@@ -38,13 +38,27 @@ git commit -m "fix: #15 rate limit warning position" && \
 ```bash
 python3 scripts/project.py list <owner>                    # 列出项目
 python3 scripts/project.py get <project-id>                 # 查看字段+卡片
-python3 scripts/project.py create-draft <project-id> "标题"  # 创建 Draft
-python3 scripts/project.py move <project-id> <item-id> <状态> # 移动卡片
+python3 scripts/project.py create <owner> [repo]            # 创建 Sprint 看板
+python3 scripts/project.py close <number> <owner>           # 关闭看板
+python3 scripts/project.py create-draft <project-id> "标题" [--status <name>]  # 创建 Draft
+python3 scripts/project.py move <project-id> <item-id> <状态> [--commit <sha>] # 移动卡片
 python3 scripts/project.py convert <item-id> <repo-id>       # Draft → Issue
-python3 scripts/project.py setup <project-id> '<items>'      # Sprint 初始化
+python3 scripts/project.py setup <project-id> '<items>' [--repo-id <id>]  # Sprint 初始化
+python3 scripts/project.py add-issue <project-id> <issue-url>  # 已有 Issue 加入看板
+python3 scripts/project.py remove-issue <project-id> <item-id>  # 从看板移除卡片
+python3 scripts/project.py move-issue <from-id> <to-id> <issue-url>  # 看板间移动 Issue
 ```
 
-`setup` 每项支持 5 个字段: `[title, status, priority, estimate, body?]`
+`setup` 每项支持 5 个字段: `[title, status, priority, estimate, body?]`。有 `--repo-id` 时自动转为 Issue 并加 label。
+
+**`scripts/issue.py`** — Issue 管理工具：
+
+```bash
+python3 scripts/issue.py create <owner/repo> <title> <body_file> [--label <name>]  # 创建 Issue
+python3 scripts/issue.py close <owner/repo> <number>       # 关闭 Issue
+python3 scripts/issue.py comment <owner/repo> <number> <body_file>  # 评论 Issue
+python3 scripts/issue.py list <owner/repo> [--state open|closed|all]  # 列出 Issue
+```
 
 **`scripts/discussion.py`** — Discussion 管理工具：
 
