@@ -134,7 +134,7 @@ git push origin sprint-1
 ### 第四步：关闭 Sprint 看板
 
 ```bash
-gh project close <看板编号> --owner <owner>
+python3 scripts/project.py close <看板编号> <owner>
 ```
 
 旧看板关闭后仍可访问（只读），记录在 Sprint 总结报告的链接中。

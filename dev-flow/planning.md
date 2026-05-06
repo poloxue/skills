@@ -22,16 +22,15 @@ Requirements Discussion 确认定稿后，将每个用户故事转为 Project bo
 
 命名规则：`{仓库名}-{日期}`，如 `ghpm-2026-05-07`。
 
+有 repo 时自动关联仓库，无 repo 则创建全局看板。
+
 ```bash
 # 1. 创建新看板
-gh project create --owner <owner> --title "<repo>-<date>" --format json
+python3 scripts/project.py create <owner> [repo]
 
-# 2. 获取 project-id
-python3 scripts/project.py list <owner>
+# 2. 在 AGENTS.md 中记录当前 Sprint 看板名
 
-# 3. 在 AGENTS.md 中记录当前 Sprint 看板名
-
-# 4. 初始化字段 + 创建卡片
+# 3. 初始化字段 + 创建卡片
 python3 scripts/project.py setup <project-id> '<items>'
 ```
 

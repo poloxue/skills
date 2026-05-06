@@ -41,6 +41,7 @@ Project 管理工具 (增/改/查/状态切换)
 """
 
 import subprocess, json, sys, os, time
+from datetime import date
 
 
 def gql(query):
@@ -53,6 +54,46 @@ def gql(query):
         sys.exit(1)
     return json.loads(r.stdout)
 
+
+# ── create ──
+
+def cmd_create(args):
+    """create <owner> [repo]"""
+    if len(args) < 1:
+        print("用法: project.py create <owner> [repo]", file=sys.stderr)
+        sys.exit(1)
+    owner = args[0]
+    repo = args[1] if len(args) > 1 else None
+    title = f"{repo}-{date.today()}" if repo else f"{owner}-project-{date.today()}"
+
+    # 获取 owner ID
+    owner_id = gql('{user(login:"%s"){id}}' % owner)["data"]["user"]["id"]
+
+    if repo:
+        repo_id = gql('{repository(owner:"%s",name:"%s"){id}}' % (owner, repo))["data"]["repository"]["id"]
+        result = gql(f'mutation {{ createProjectV2(input: {{ownerId: "{owner_id}", repositoryId: "{repo_id}", title: "{title}"}}) {{ projectV2 {{ id number title url }} }} }}')
+    else:
+        result = gql(f'mutation {{ createProjectV2(input: {{ownerId: "{owner_id}", title: "{title}"}}) {{ projectV2 {{ id number title url }} }} }}')
+
+    proj = result["data"]["createProjectV2"]["projectV2"]
+    print(f"已创建: #{proj['number']} {proj['title']}")
+    print(f"  {proj['url']}")
+    print(f"  ID: {proj['id']}")
+
+# ── close ──
+
+def cmd_close(args):
+    """close <number> <owner>"""
+    if len(args) < 2:
+        print("用法: project.py close <number> <owner>", file=sys.stderr)
+        sys.exit(1)
+    import subprocess
+    r = subprocess.run(["gh", "project", "close", args[0], "--owner", args[1]], capture_output=True, text=True)
+    if r.returncode == 0:
+        print(f"已关闭: #{args[0]} ({args[1]})")
+    else:
+        print(f"关闭失败: {r.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
 
 # ── list ──
 
@@ -471,6 +512,8 @@ def cmd_setup(args):
 
 
 CMDS = {
+    "create": cmd_create,
+    "close": cmd_close,
     "list": cmd_list,
     "get": cmd_get,
     "create-draft": cmd_create_draft,
